@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">MyRuns1</string>
+    <string name="settings">Settings</string>
+    <string name="photo_label">Profile Photo</string>
+    <string name="imgFileName">profilePhoto.jpg</string>
+    <string name="change_photo">Change</string>
+    <string name="name_label">Name</string>
+    <string name="name_hint">Your Name </string>
+    <string name="email_label">Email</string>
+    <string name="email_hint">Your Email </string>
+    <string name="phone_label">Phone</string>
+    <string name="phone_hint">Your Phone Number </string>
+    <string name="gender_label">Gender</string>
+    <string name="male_label">Male</string>
+    <string name="female_label">Female</string>
+    <string name="class_label">Class</string>
+    <string name="class_hint">e.g. 2020</string>
+    <string name="major_label">Major</string>
+    <string name="major_hint">Your Major </string>
+    <string name="save_label">Save</string>
+    <string name="cancel_label">Cancel</string>
+</resources>

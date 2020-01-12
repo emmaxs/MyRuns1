@@ -1,0 +1,15 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:myruns="http://schemas.android.com/apk/res-auto">
+
+    <!--
+    The android:orderInCategory attribute dictates the order in which the menu items will appear
+    within the menu when it is displayed. The menu items are arranged from left to right
+    in ascending order of integer value of orderInCategory (i.e. 1,2,3... -> left to right).
+    -->
+    <item
+        android:id="@+id/menu_settings"
+        android:orderInCategory="100"
+        myruns:showAsAction="never"
+        android:title="@string/settings"/>
+
+</menu>
