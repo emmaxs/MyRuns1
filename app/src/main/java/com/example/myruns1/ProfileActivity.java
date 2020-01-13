@@ -35,17 +35,16 @@ public class ProfileActivity extends AppCompatActivity {
     Uri imgUri;
     File imgFile;
     String imgFileName = "newFile.jpg";
-    boolean isTakenFromCamera;
 
     public static final int REQUEST_IMAGE_CAPTURE = 2;
-    private static final String URI_INSTANCE_STATE_KEY = "saved_uri";
+    private static final String URI_INSTANCE_STATE_KEY = "photo_uri";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.profile);
 
-        // initialize saved preferences
+        // initialize saved text preferences
         loadProfile();
 
         imageView = findViewById(R.id.imageProfile);
@@ -57,6 +56,9 @@ public class ProfileActivity extends AppCompatActivity {
         imgFile = new File(getExternalFilesDir(null), imgFileName);
         imgUri = FileProvider.getUriForFile(this, "com.example.myruns1", imgFile);
 
+        Log.d("exs_start", imgUri.getPath());
+
+        // if there is already a saved photo, get its uri
         if(savedInstanceState != null) {
             imgUri = savedInstanceState.getParcelable(URI_INSTANCE_STATE_KEY);
         }
@@ -64,7 +66,7 @@ public class ProfileActivity extends AppCompatActivity {
         loadSnap();
     }
 
-    // From the Android Developer's Guide
+    // From the Android Developer Docs - Menu Bar
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -77,14 +79,13 @@ public class ProfileActivity extends AppCompatActivity {
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 //        // Construct temporary image path and name to save the taken
 //        // photo
-//        ContentValues values = new ContentValues(1);
-//        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpg");
-//        imgUri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        ContentValues values = new ContentValues(1);
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpg");
+        imgUri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        intent.putExtra("return-data", true);
 //        // save URI and start camera
         intent.putExtra(MediaStore.EXTRA_OUTPUT, imgUri);
-//        intent.putExtra("return-data", true);
         startActivityForResult(intent, REQUEST_IMAGE_CAPTURE);
-        isTakenFromCamera = true;
     }
 
     // after the camera activity returns the photo
@@ -96,20 +97,18 @@ public class ProfileActivity extends AppCompatActivity {
             switch (requestCode) {
                 // Image was taken from camera
                 case REQUEST_IMAGE_CAPTURE:
-//                     Send image taken from camera for cropping
+//                  Send image taken from camera for cropping
                     beginCrop(imgUri);
                     break;
 ////
-                case Crop.REQUEST_CROP: //We changed the RequestCode to the one being used by the library.
+                case Crop.REQUEST_CROP:
                     // Update image view after image crop
                     handleCrop(resultCode, data);
 
                     // Delete temporary image taken by camera after crop.
-                    if (isTakenFromCamera) {
-                        File f = new File(imgUri.getPath());
-                        if (f.exists())
-                            f.delete();
-                    }
+                    File f = new File(imgUri.getPath());
+                    if (f.exists())
+                        f.delete();
                     break;
             }
         }
@@ -121,24 +120,23 @@ public class ProfileActivity extends AppCompatActivity {
         // Load profile photo from internal storage
         try {
             FileInputStream fis = openFileInput(getString(R.string.imgFileName));
-            Bitmap bmap = BitmapFactory.decodeStream(fis);
-            imageView.setImageBitmap(bmap);
+            Bitmap bitmap = BitmapFactory.decodeStream(fis);
+            imageView.setImageBitmap(bitmap);
             fis.close();
         } catch (IOException e) {
-            // Default profile photo if no photo saved before.
-//            imageView.setImageResource(R.drawable.default_profile);
+            e.printStackTrace();
+            Log.d("exs_loadSnap", "no photo saved");
         }
     }
 
     private void saveSnap() {
 
-        // Commit all the changes into preference file
         // Save profile image into internal storage.
         imageView.buildDrawingCache();
-        Bitmap bmap = imageView.getDrawingCache();
+        Bitmap bitmap = imageView.getDrawingCache();
         try {
             FileOutputStream fos = openFileOutput(getString(R.string.imgFileName), MODE_PRIVATE);
-            bmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
             fos.flush();
             fos.close();
         } catch (IOException ioe) {
@@ -170,7 +168,6 @@ public class ProfileActivity extends AppCompatActivity {
         super.onSaveInstanceState(bundle);
         saveProfile();
         // Save the image capture uri before the activity goes into background
-//        bundle.putParcelable(URI_INSTANCE_STATE_KEY, imgUri);
         bundle.putParcelable(URI_INSTANCE_STATE_KEY, imgUri);
     }
 
@@ -196,7 +193,7 @@ public class ProfileActivity extends AppCompatActivity {
         // Save existing editTexts
         saveProfile();
         // Save existing photo
-         saveSnap();
+//        saveSnap();
     }
 
     private void loadProfile() {
