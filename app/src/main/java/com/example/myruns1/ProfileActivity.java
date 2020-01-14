@@ -1,7 +1,6 @@
 package com.example.myruns1;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.FileProvider;
 
 import android.app.Activity;
 import android.content.ContentValues;
@@ -46,7 +45,6 @@ public class ProfileActivity extends AppCompatActivity {
         loadProfile();
 
         imageView = findViewById(R.id.imageProfile);
-//        imgUri = null;
 
         // check if you have camera permissions
         Util.checkPermission(this);
@@ -155,20 +153,14 @@ public class ProfileActivity extends AppCompatActivity {
         }
     }
 
-    /** Method to start Crop activity using the library
-     *  Earlier the code used to start a new intent to crop the image,
-     *  but here the library is handling the creation of an Intent, so you don't
-     * have to.
-     *  **/
     private void beginCrop(Uri source) {
         Uri destination = Uri.fromFile(new File(getCacheDir(), "cropped"));
-        // do I need to delete it here
         Crop.of(source, destination).asSquare().start(this);
     }
 
     private void handleCrop(int resultCode, Intent result) {
         if (resultCode == RESULT_OK) {
-            // get path of this
+            // get path of cropped image
             imgUri = Crop.getOutput(result);
             imageView.setImageResource(0);
             imageView.setImageURI(imgUri);
@@ -247,7 +239,6 @@ public class ProfileActivity extends AppCompatActivity {
         SharedPreferences sharedPreferences = getSharedPreferences("ProfileData", MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
 
-        // redundant code should call/ declare
         // Call corresponding text boxes
         EditText edit_name = findViewById(R.id.edit_name);
         EditText edit_email = findViewById(R.id.edit_email);
@@ -259,9 +250,9 @@ public class ProfileActivity extends AppCompatActivity {
         editor.putString("name", edit_name.getText().toString());
         editor.putString("email", edit_email.getText().toString());
         editor.putString("phone", String.valueOf(edit_phone.getText()));
-//        if (edit_class.getText().toString().equals("")) {
-//            editor.putInt("class", Integer.parseInt(edit_class.getText().toString()));
-//        }
+        if (!edit_class.getText().toString().equals("")) {
+            editor.putInt("class", Integer.parseInt(edit_class.getText().toString()));
+        }
         editor.putString("major", edit_major.getText().toString());
 
         // Commit changes
