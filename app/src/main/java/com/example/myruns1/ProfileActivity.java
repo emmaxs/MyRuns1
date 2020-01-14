@@ -33,8 +33,6 @@ public class ProfileActivity extends AppCompatActivity {
     ImageView imageView;
 
     Uri imgUri;
-    File imgFile;
-    String imgFileName = "newFile.jpg";
 
     public static final int REQUEST_IMAGE_CAPTURE = 2;
     private static final String URI_INSTANCE_STATE_KEY = "photo_uri";
@@ -48,22 +46,20 @@ public class ProfileActivity extends AppCompatActivity {
         loadProfile();
 
         imageView = findViewById(R.id.imageProfile);
+//        imgUri = null;
 
         // check if you have camera permissions
         Util.checkPermission(this);
 
-        // create file object
-        imgFile = new File(getExternalFilesDir(null), imgFileName);
-        imgUri = FileProvider.getUriForFile(this, "com.example.myruns1", imgFile);
-
-        Log.d("exs_start", imgUri.getPath());
-
-        // if there is already a saved photo, get its uri
+//      if there is already a saved state
         if(savedInstanceState != null) {
             imgUri = savedInstanceState.getParcelable(URI_INSTANCE_STATE_KEY);
+            Log.d("exs_onCreate", "we are in onCreate and savedInstanceState not null");
         }
 
-        loadSnap();
+        Log.d("exs_onCreate_new", "in onCreate");
+
+        loadSnap(savedInstanceState);
     }
 
     // From the Android Developer Docs - Menu Bar
@@ -77,12 +73,14 @@ public class ProfileActivity extends AppCompatActivity {
     public void onChangePhotoClicked(View view) {
         // intent to take a picture
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
 //        // Construct temporary image path and name to save the taken
 //        // photo
         ContentValues values = new ContentValues(1);
         values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpg");
         imgUri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
         intent.putExtra("return-data", true);
+
 //        // save URI and start camera
         intent.putExtra(MediaStore.EXTRA_OUTPUT, imgUri);
         startActivityForResult(intent, REQUEST_IMAGE_CAPTURE);
@@ -97,6 +95,7 @@ public class ProfileActivity extends AppCompatActivity {
             switch (requestCode) {
                 // Image was taken from camera
                 case REQUEST_IMAGE_CAPTURE:
+                    Log.d("exs_before_crop", imgUri.getPath());
 //                  Send image taken from camera for cropping
                     beginCrop(imgUri);
                     break;
@@ -105,27 +104,37 @@ public class ProfileActivity extends AppCompatActivity {
                     // Update image view after image crop
                     handleCrop(resultCode, data);
 
-                    // Delete temporary image taken by camera after crop.
-                    File f = new File(imgUri.getPath());
-                    if (f.exists())
-                        f.delete();
-                    break;
             }
         }
     }
 
 
-    private void loadSnap() {
-
+    private void loadSnap(Bundle bundle) {
+//
         // Load profile photo from internal storage
-        try {
-            FileInputStream fis = openFileInput(getString(R.string.imgFileName));
-            Bitmap bitmap = BitmapFactory.decodeStream(fis);
-            imageView.setImageBitmap(bitmap);
-            fis.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-            Log.d("exs_loadSnap", "no photo saved");
+        if (imgUri == null) {
+            // try to get from file
+            try {
+                FileInputStream fis = openFileInput(getString(R.string.imgFileName));
+                Bitmap bitmap = BitmapFactory.decodeStream(fis);
+                imageView.setImageBitmap(bitmap);
+                fis.close();
+                if (imgUri != null) {
+                    Log.d("exs_loadTry", imgUri.getPath());
+                }
+                else {
+                    Log.d("exs_loadTry", "was null");
+                }
+            } catch (IOException e) {
+
+                e.printStackTrace();
+                Log.d("exs_loadCatch", "no photo saved");
+            }
+        }
+        else {
+            Log.d("exs_onCreate_existingUri", imgUri.getPath());
+            // set the image view if imgUri already exists
+            imageView.setImageURI(imgUri);
         }
     }
 
@@ -134,6 +143,8 @@ public class ProfileActivity extends AppCompatActivity {
         // Save profile image into internal storage.
         imageView.buildDrawingCache();
         Bitmap bitmap = imageView.getDrawingCache();
+        if (imgUri != null)
+        Log.d("exs_saveSnap", imgUri.getPath());
         try {
             FileOutputStream fos = openFileOutput(getString(R.string.imgFileName), MODE_PRIVATE);
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
@@ -151,12 +162,19 @@ public class ProfileActivity extends AppCompatActivity {
      *  **/
     private void beginCrop(Uri source) {
         Uri destination = Uri.fromFile(new File(getCacheDir(), "cropped"));
+        // do I need to delete it here
         Crop.of(source, destination).asSquare().start(this);
     }
 
     private void handleCrop(int resultCode, Intent result) {
         if (resultCode == RESULT_OK) {
-            imageView.setImageURI(Crop.getOutput(result));
+            // get path of this
+            imgUri = Crop.getOutput(result);
+            imageView.setImageResource(0);
+            imageView.setImageURI(imgUri);
+            Log.d("exs_handleCrop_uri", imgUri.getPath());
+
+
         } else if (resultCode == Crop.RESULT_ERROR) {
             Toast.makeText(this, Crop.getError(result).getMessage(), Toast.LENGTH_SHORT).show();
         }
@@ -164,37 +182,22 @@ public class ProfileActivity extends AppCompatActivity {
 
     @Override
     protected void onSaveInstanceState(Bundle bundle) {
-        // Make sure to call the super method so that the states of our views are saved
         super.onSaveInstanceState(bundle);
-        saveProfile();
+//        saveProfile();
+
         // Save the image capture uri before the activity goes into background
-        bundle.putParcelable(URI_INSTANCE_STATE_KEY, imgUri);
+        if (imgUri != null) {
+            Log.d("exs_onSave_newUri", imgUri.getPath());
+            bundle.putParcelable(URI_INSTANCE_STATE_KEY, imgUri);
+//        }
+        }
     }
 
     @Override
     public void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
-        loadProfile();
-//        loadSnap();
     }
 
-    @Override
-    public void onResume(){
-        super.onResume();
-        // Load saved profile data
-        loadProfile();
-        // Load existing photo
-//         loadSnap();
-    }
-
-    @Override
-    public void onPause(){
-        super.onPause();
-        // Save existing editTexts
-        saveProfile();
-        // Save existing photo
-//        saveSnap();
-    }
 
     private void loadProfile() {
         // Retrieve shared preferences
@@ -218,7 +221,8 @@ public class ProfileActivity extends AppCompatActivity {
         edit_name.setText(name);
         edit_email.setText(email);
         edit_phone.setText(phone);
-        edit_class.setText(String.valueOf(class_year));
+        if (class_year != 0)
+            edit_class.setText(String.valueOf(class_year));
         edit_major.setText(major);
 
 
@@ -255,7 +259,9 @@ public class ProfileActivity extends AppCompatActivity {
         editor.putString("name", edit_name.getText().toString());
         editor.putString("email", edit_email.getText().toString());
         editor.putString("phone", String.valueOf(edit_phone.getText()));
-        editor.putInt("class", Integer.parseInt(edit_class.getText().toString()));
+//        if (edit_class.getText().toString().equals("")) {
+//            editor.putInt("class", Integer.parseInt(edit_class.getText().toString()));
+//        }
         editor.putString("major", edit_major.getText().toString());
 
         // Commit changes
@@ -287,6 +293,8 @@ public class ProfileActivity extends AppCompatActivity {
     public void onSaveButtonClicked(View view) {
         // Save snap
         saveSnap();
+        // Save profile
+        saveProfile();
 
         // From Android Developers Guide
         CharSequence text = "Application saved.";
